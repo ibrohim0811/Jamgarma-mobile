@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Pressable,
   Platform,
+  Linking,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -17,13 +18,15 @@ import Animated, {
   interpolate,
   Easing,
   FadeInDown,
+  FadeIn,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 
-const SHEET_H = 440;
+const SHEET_H = 500;
+const PASSKEY_URL = 'https://devguard.uz'; // PassKey (Authenticator) ilovasini o'rnatish sahifasi
 
 /* ------------------------------------------------------------------ */
 /*  Orqa fon animatsiyasi: suzib yuruvchi tangalar + pulsatsiya halqalar */
@@ -206,6 +209,8 @@ export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [iosNotice, setIosNotice] = useState(false);
+  const [step, setStep] = useState<'install' | 'confirm'>('install');
 
   const sheetY = useSharedValue(SHEET_H + 120);
   const backdrop = useSharedValue(0);
@@ -214,6 +219,8 @@ export default function AuthScreen() {
 
   const openSheet = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setIosNotice(false);
+    setStep('install');
     setSheetOpen(true);
     backdrop.value = withTiming(1, { duration: 250 });
     sheetY.value = withSpring(0, { damping: 18, stiffness: 160 });
@@ -231,10 +238,31 @@ export default function AuthScreen() {
   };
 
   const onSetupPasskey = (platform: 'android' | 'ios') => {
+    if (platform === 'ios') {
+      // iOS hozircha qo'llab-quvvatlanmaydi
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      setIosNotice(true);
+      return;
+    }
+
+    // Android: o'rnatish sahifasini ochamiz va "o'rnatildimi?" deb so'raymiz
+    setIosNotice(false);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    // TODO: PassKey ro'yxatdan o'tkazish
-    //  - Android: Credential Manager (Google Password Manager)
-    //  - iOS: AuthenticationServices (iCloud Keychain)
+    Linking.openURL(PASSKEY_URL).catch(() => {});
+    setStep('confirm');
+  };
+
+  // "PassKey o'rnatildimi?" → Ha: ro'yxatdan o'tishni boshlaymiz
+  const onPasskeyYes = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    closeSheet();
+    router.push('/register/name');
+  };
+
+  // "Yo'q": o'rnatish oynasiga qaytamiz
+  const onPasskeyNo = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setStep('install');
   };
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: backdrop.value }));
@@ -324,6 +352,39 @@ export default function AuthScreen() {
                 </Text>
               </PressableScale>
             </View>
+
+            {iosNotice && (
+              <Animated.View entering={FadeInDown.duration(300)} style={styles.notice}>
+                <Ionicons name="information-circle" size={20} color="#B45309" />
+                <Text style={styles.noticeText}>
+                  PassKey vaqtincha iOS ni qo'llab-quvvatlamaydi
+                </Text>
+              </Animated.View>
+            )}
+
+            {/* "PassKey o'rnatildimi?" — o'rnatish oynasi ustidan chiqadi */}
+            {step === 'confirm' && (
+              <Animated.View entering={FadeIn.duration(250)} style={styles.confirmOverlay}>
+                <View style={styles.sheetIcon}>
+                  <Ionicons name="shield-checkmark" size={34} color="#fff" />
+                </View>
+
+                <Text style={styles.sheetTitle}>PassKey o'rnatildimi?</Text>
+                <Text style={styles.sheetText}>
+                  PassKey ilovasini o'rnatgan bo'lsangiz, ro'yxatdan o'tishni davom ettiramiz.
+                </Text>
+
+                <View style={styles.sheetButtons}>
+                  <PressableScale style={[styles.passBtn, styles.passBtnPrimary]} onPress={onPasskeyYes}>
+                    <Text style={[styles.passText, { color: '#fff' }]}>Ha</Text>
+                  </PressableScale>
+
+                  <PressableScale style={[styles.passBtn, styles.passBtnOutline]} onPress={onPasskeyNo}>
+                    <Text style={[styles.passText, { color: '#000' }]}>Yo'q</Text>
+                  </PressableScale>
+                </View>
+              </Animated.View>
+            )}
           </Animated.View>
         </View>
       )}
@@ -463,6 +524,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1.5,
     borderColor: '#000',
+  },
+  notice: {
+    alignSelf: 'stretch',
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#B45309',
+  },
+  confirmOverlay: {
+    position: 'absolute',
+    top: 39,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    paddingHorizontal: 22,
+    alignItems: 'center',
   },
   passText: {
     fontSize: 16,

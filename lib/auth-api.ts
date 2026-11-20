@@ -7,9 +7,7 @@ import { Platform } from 'react-native';
  *  - Android emulyator:     http://10.0.2.2:8000  (emulyatordan kompyuter localhost'i shu)
  *  - Haqiqiy telefon:       .env faylida EXPO_PUBLIC_API_URL=http://<kompyuter-IP>:8000
  */
-const DEFAULT_URL =
-  Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://127.0.0.1:8000';
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_URL;
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://api.jamgarma.devguard.uz';
 
 const ACCESS_KEY = 'access_token';
 const REFRESH_KEY = 'refresh_token';
