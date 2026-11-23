@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import { API_URL, ApiError, NetworkError, saveTokens, authFetch } from './auth-api';
 
 /* ------------------------------------------------------------------ */
@@ -12,6 +13,8 @@ export type RegisterDraft = {
   phone: string; // faqat 9 ta raqam (+998 siz)
   password: string;
 };
+
+const PUSH_KEY = 'push_token';
 
 const EMPTY: RegisterDraft = { first_name: '', last_name: '', phone: '', password: '' };
 let draft: RegisterDraft = { ...EMPTY };
@@ -120,12 +123,34 @@ export async function registerDevice() {
       projectId ? { projectId } : undefined
     );
 
-    await authFetch('/devices/register', {
+    const res = await authFetch('/devices/register', {
       method: 'POST',
       body: JSON.stringify({ token, device_type: Platform.OS }),
     });
+
+    // Token serverda saqlandi: chiqishda o'chirish uchun qurilmada ham eslab qolamiz
+    if (res.ok) await SecureStore.setItemAsync(PUSH_KEY, token);
   } catch (e) {
     console.log("Push token ro'yxatdan o'tmadi:", e);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  DELETE /devices/unregister  →  chiqishda (logout) chaqiriladi        */
+/* ------------------------------------------------------------------ */
+
+export async function unregisterDevice() {
+  try {
+    const token = await SecureStore.getItemAsync(PUSH_KEY);
+    if (!token) return;
+
+    await authFetch('/devices/unregister', {
+      method: 'DELETE',
+      body: JSON.stringify({ token }),
+    });
+    await SecureStore.deleteItemAsync(PUSH_KEY);
+  } catch (e) {
+    console.log("Push token o'chirilmadi:", e);
   }
 }
 

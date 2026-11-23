@@ -22,10 +22,9 @@ import {
   isBiometricEnabled,
   setBiometricEnabled,
   authenticateBiometric,
-  clearPin,
   BiometricKind,
 } from '../lib/pin';
-import { clearTokens } from '../lib/auth-api';
+import { logoutCleanup } from '../lib/session';
 
 const PIN_LENGTH = 4;
 const MAX_ATTEMPTS = 5; // qulfni ochishda ruxsat etilgan xato urinishlar
@@ -188,8 +187,7 @@ export default function PinScreen() {
 
       if (n >= MAX_ATTEMPTS) {
         // Juda ko'p xato urinish: sessiyani tugatib, qayta kirishni talab qilamiz
-        await clearTokens();
-        await clearPin();
+        await logoutCleanup();
         Alert.alert('Xavfsizlik', "Ko'p marta xato kiritildi. Iltimos, qaytadan kiring.");
         router.replace('/login');
         return;
@@ -209,8 +207,7 @@ export default function PinScreen() {
           text: 'Chiqish',
           style: 'destructive',
           onPress: async () => {
-            await clearTokens();
-            await clearPin();
+            await logoutCleanup();
             router.replace('/login');
           },
         },

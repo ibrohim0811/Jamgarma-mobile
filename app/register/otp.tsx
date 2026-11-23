@@ -8,7 +8,6 @@ import {
   clearDraft,
   register,
   confirmOtp,
-  registerDevice,
 } from '../../lib/register-api';
 import { ApiError, NetworkError } from '../../lib/auth-api';
 
@@ -47,7 +46,6 @@ export default function RegisterOtp() {
     try {
       await confirmOtp(phone, code); // tokenlar shu yerda saqlanadi
       clearDraft(); // parol xotiradan o'chadi
-      registerDevice(); // push token (fon rejimida, kutmaymiz)
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace('/pin');
     } catch (e) {

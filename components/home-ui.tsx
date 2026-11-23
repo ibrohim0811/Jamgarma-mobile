@@ -10,6 +10,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { splitMoney, money, MONTHS, Spending, Direction } from '../lib/home-api';
+import { WeatherInfo, weatherTint, weatherIcon } from '../lib/weather';
+import { WeatherBackground } from './weather-bg';
 
 export const C = {
   bg: '#050505',
@@ -221,6 +223,8 @@ export function BalanceCard({
   onCreateCard,
   creating,
   onDetails,
+  weather,
+  onPress,
 }: {
   total: number;
   cardNumber?: number;
@@ -231,13 +235,17 @@ export function BalanceCard({
   onCreateCard: () => void;
   creating: boolean;
   onDetails: () => void;
+  weather?: WeatherInfo | null;
+  onPress?: () => void;
 }) {
   const { int, dec } = splitMoney(total);
   const last4 = cardNumber ? String(cardNumber).slice(-4) : null;
+  const tint = weather ? weatherTint(weather.kind) : '#0E1210';
 
   return (
-    <View style={styles.card}>
-      <Blossoms />
+    <Pressable onPress={onPress} style={[styles.card, { backgroundColor: tint }]}>
+      {/* Ob-havoga mos animatsiya (bahorda ochiq kunda gullar) */}
+      {weather?.kind === 'blossom' ? <Blossoms /> : <WeatherBackground kind={weather?.kind ?? null} />}
 
       <View style={styles.cardTop}>
         <View style={styles.brandRow}>
@@ -245,8 +253,16 @@ export function BalanceCard({
           <View style={styles.vDivider} />
           <Text style={styles.account}>ASOSIY HISOB</Text>
         </View>
-        <View style={styles.currency}>
-          <Text style={styles.currencyText}>UZS</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {weather ? (
+            <View style={[styles.currency, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}>
+              <Feather name={weatherIcon(weather.kind) as any} size={13} color={C.text} />
+              <Text style={styles.currencyText}>{Math.round(weather.temp)}°</Text>
+            </View>
+          ) : null}
+          <View style={styles.currency}>
+            <Text style={styles.currencyText}>UZS</Text>
+          </View>
         </View>
       </View>
 
@@ -292,7 +308,7 @@ export function BalanceCard({
           </Pressable>
         ) : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 

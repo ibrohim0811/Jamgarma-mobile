@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
-import { getMe, Me } from '../lib/register-api';
+import { getMe, Me, registerDevice } from '../lib/register-api';
+import { logoutCleanup } from '../lib/session';
 import { ApiError, clearTokens } from '../lib/auth-api';
 import { clearPin } from '../lib/pin';
 import {
@@ -35,6 +36,7 @@ import {
   Skeleton,
 } from '../components/home-ui';
 import { MarketPanel, useMarket } from '../components/market-ui';
+import { useWeather } from '../lib/weather';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -49,6 +51,10 @@ export default function HomeScreen() {
   const [creating, setCreating] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
   const market = useMarket(marketKey); // /info/currencies, /info/crypto, /info/stocks
+
+  // Ob-havo push ruxsatidan keyin so'raladi (ikki ruxsat oynasi to'qnashmasligi uchun)
+  const [weatherReady, setWeatherReady] = useState(false);
+  const weather = useWeather(weatherReady);
 
   const load = useCallback(async () => {
     try {
@@ -75,6 +81,13 @@ export default function HomeScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Push token: har safar ilova ochilganda serverga yuboriladi (akkaunt almashsa ham to'g'ri biriktiriladi)
+  useEffect(() => {
+    registerDevice().finally(() => setWeatherReady(true));
+    const fallback = setTimeout(() => setWeatherReady(true), 8000);
+    return () => clearTimeout(fallback);
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -112,6 +125,13 @@ export default function HomeScreen() {
 
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
+  // Karta tafsilotlari ekrani
+  const openCard = () => {
+    if (!cards[0]) return;
+    tap();
+    router.push({ pathname: '/card', params: { number: String(cards[0].card_number) } });
+  };
+
   const onCreateCard = async () => {
     setCreating(true);
     try {
@@ -131,8 +151,7 @@ export default function HomeScreen() {
         text: 'Chiqish',
         style: 'destructive',
         onPress: async () => {
-          await clearTokens();
-          await clearPin();
+          await logoutCleanup(); // push tokenni o'chiradi, tokenlar va parolni tozalaydi
           router.replace('/login');
         },
       },
@@ -191,7 +210,9 @@ export default function HomeScreen() {
                 onToggleHidden={() => setHidden((v) => !v)}
                 onCreateCard={onCreateCard}
                 creating={creating}
-                onDetails={tap}
+                onDetails={openCard}
+                onPress={openCard}
+                weather={weather}
               />
             </Animated.View>
 

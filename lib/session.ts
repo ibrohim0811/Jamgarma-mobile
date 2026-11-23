@@ -5,6 +5,7 @@ import {
   clearTokens,
 } from './auth-api';
 import { hasPin, clearPin } from './pin';
+import { unregisterDevice } from './register-api';
 
 /** JWT ichidagi `exp` (ms). O'qib bo'lmasa null. */
 function tokenExpiresAt(token: string): number | null {
@@ -64,4 +65,14 @@ export async function resolveStartRoute(): Promise<string> {
 
   // Sessiya bor: parol o'rnatilgan bo'lsa so'raymiz, yo'q bo'lsa yangi o'rnatamiz
   return (await hasPin()) ? '/pin?mode=unlock' : '/pin';
+}
+
+/**
+ * Akkauntdan chiqish: push tokenni serverdan o'chiradi (ko'pi bilan 5 soniya kutadi),
+ * keyin tokenlar va 4 xonali parolni tozalaydi.
+ */
+export async function logoutCleanup() {
+  await Promise.race([unregisterDevice(), new Promise<void>((resolve) => setTimeout(resolve, 5000))]);
+  await clearTokens();
+  await clearPin();
 }

@@ -10,7 +10,7 @@ import { C, Skeleton } from './home-ui';
 /*  Turlar (API hujjatidagi /info/* javoblari)                          */
 /* ------------------------------------------------------------------ */
 
-type Currencies = { base: string; provider: string; rates: Record<string, number> };
+export type Currencies = { base: string; provider: string; rates: Record<string, number> };
 
 type Crypto = {
   BTC: {
@@ -44,7 +44,7 @@ const initial = <T,>(): Section<T> => ({ data: null, loading: true, error: null 
 /*  So'rovlar (auth kerak emas)                                         */
 /* ------------------------------------------------------------------ */
 
-async function getJson<T>(path: string, timeoutMs = 15000): Promise<T> {
+export async function getJson<T>(path: string, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
