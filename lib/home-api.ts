@@ -34,7 +34,7 @@ export type Tx = {
 /*  So'rovlar                                                           */
 /* ------------------------------------------------------------------ */
 
-async function call(path: string, init?: RequestInit) {
+export async function call(path: string, init?: RequestInit) {
   let res: Response;
   try {
     res = await authFetch(path, init);

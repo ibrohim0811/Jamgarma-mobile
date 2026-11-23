@@ -512,8 +512,9 @@ export function ActivityList({ items, onViewAll }: { items: ActivityItem[]; onVi
 
 const TABS: { key: string; icon: IconName; label: string }[] = [
   { key: 'home', icon: 'home', label: 'Asosiy' },
-  { key: 'cards', icon: 'credit-card', label: 'Kartalar' },
-  { key: 'insights', icon: 'bar-chart-2', label: 'Statistika' },
+  { key: 'pay', icon: 'credit-card', label: "To'lov" },
+  { key: 'transactions', icon: 'repeat', label: 'Tranzaksiya' },
+  { key: 'stats', icon: 'bar-chart-2', label: 'Statistika' },
   { key: 'profile', icon: 'user', label: 'Profil' },
 ];
 

@@ -3,7 +3,7 @@ import { View, Text, ScrollView, RefreshControl, Pressable, Alert, StyleSheet } 
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { getMe, Me, registerDevice } from '../lib/register-api';
@@ -32,9 +32,9 @@ import {
   SpendingCard,
   ActivityList,
   ActivityItem,
-  TabBar,
   Skeleton,
 } from '../components/home-ui';
+import { AppTabBar } from '../components/app-tabs';
 import { MarketPanel, useMarket } from '../components/market-ui';
 import { useWeather } from '../lib/weather';
 
@@ -78,9 +78,12 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Ekran ochilganda va boshqa ekrandan (to'ldirish, to'lov) qaytganda ma'lumot yangilanadi
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   // Push token: har safar ilova ochilganda serverga yuboriladi (akkaunt almashsa ham to'g'ri biriktiriladi)
   useEffect(() => {
@@ -130,6 +133,13 @@ export default function HomeScreen() {
     if (!cards[0]) return;
     tap();
     router.push({ pathname: '/card', params: { number: String(cards[0].card_number) } });
+  };
+
+  // Tezkor amallar: To'ldirish va To'lovlar ishlaydi, qolganlari keyin
+  const onAction = (key: string) => {
+    tap();
+    if (key === 'topup') router.push('/topup');
+    else if (key === 'pay') router.push('/pay');
   };
 
   const onCreateCard = async () => {
@@ -217,7 +227,7 @@ export default function HomeScreen() {
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(100).duration(500)}>
-              <ActionsRow onPress={tap} />
+              <ActionsRow onPress={onAction} />
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(200).duration(500)}>
@@ -229,13 +239,13 @@ export default function HomeScreen() {
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(400).duration(500)}>
-              <ActivityList items={activity} onViewAll={tap} />
+              <ActivityList items={activity} onViewAll={() => router.push('/transactions')} />
             </Animated.View>
           </>
         )}
       </ScrollView>
 
-      <TabBar bottomInset={insets.bottom} onPress={tap} />
+      <AppTabBar active="home" />
     </View>
   );
 }
