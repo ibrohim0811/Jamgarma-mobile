@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { resolveStartRoute } from '../lib/session';
 
 // ---------- Sozlamalar (xohlagancha o'zgartiring) ----------
 const LETTERS = ['J', 'a', 'm', 'g', 'a', 'r', 'm', 'a'];
@@ -107,9 +108,13 @@ export default function SplashScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     }, DOPPI_DELAY + DOPPI_DURATION * 0.35);
 
-    // 4. Animatsiya tugagach keyingi ekranga o'tish
-    const timer = setTimeout(() => {
-      router.replace('/login'); // yoki '/home'
+    // 4. Sessiyani animatsiya bilan bir vaqtda tekshiramiz (token, parol)
+    const routePromise = resolveStartRoute().catch(() => '/login');
+
+    // Animatsiya tugagach: /login, /pin (yangi parol) yoki /pin?mode=unlock
+    const timer = setTimeout(async () => {
+      const route = await routePromise;
+      router.replace(route as any);
     }, GO_NEXT_AT);
 
     return () => {

@@ -1,80 +1,234 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { getMe } from '../lib/register-api';
+import * as Haptics from 'expo-haptics';
+
+import { getMe, Me } from '../lib/register-api';
 import { ApiError, clearTokens } from '../lib/auth-api';
 import { clearPin } from '../lib/pin';
+import {
+  Card,
+  Tx,
+  getCards,
+  getTransactions,
+  createCard,
+  myCardIds,
+  directionOf,
+  txMeta,
+  computeSpending,
+  greeting,
+  parseDate,
+  whenLabel,
+} from '../lib/home-api';
+import {
+  C,
+  Header,
+  BalanceCard,
+  ActionsRow,
+  SpendingCard,
+  ActivityList,
+  ActivityItem,
+  TabBar,
+  Skeleton,
+} from '../components/home-ui';
+import { MarketPanel, useMarket } from '../components/market-ui';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const [name, setName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const me = await getMe();
-        setName(me.first_name);
-      } catch (e) {
-        // Sessiya tugagan bo'lsa qayta kirish kerak
-        if (e instanceof ApiError && e.status === 401) {
-          await clearTokens();
-          router.replace('/login');
-          return;
-        }
-      } finally {
-        setLoading(false);
+  const [me, setMe] = useState<Me | null>(null);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [txs, setTxs] = useState<Tx[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [marketKey, setMarketKey] = useState(0);
+  const market = useMarket(marketKey); // /info/currencies, /info/crypto, /info/stocks
+
+  const load = useCallback(async () => {
+    try {
+      const [m, c, t] = await Promise.all([getMe(), getCards(), getTransactions()]);
+      setMe(m);
+      setCards(c);
+      setTxs(t);
+      setError(null);
+    } catch (e) {
+      // Sessiya tugagan bo'lsa qayta kirish kerak
+      if (e instanceof ApiError && e.status === 401) {
+        await clearTokens();
+        await clearPin();
+        router.replace('/login');
+        return;
       }
-    })();
+      setError(e instanceof Error ? e.message : 'Xatolik yuz berdi');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  const onLogout = async () => {
-    await clearTokens();
-    await clearPin();
-    router.replace('/login');
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setMarketKey((k) => k + 1);
+    load();
   };
 
-  return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 20 }]}>
-      <View style={styles.center}>
-        {loading ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <Animated.View entering={FadeInDown.duration(600)} style={styles.welcome}>
-            <Animated.Image
-              source={require('../assets/coin.png')}
-              resizeMode="contain"
-              style={styles.coin}
-            />
-            <Text style={styles.small}>Xush kelibsiz,</Text>
-            <Text style={styles.name}>{name ? `${name}!` : ''}</Text>
-          </Animated.View>
-        )}
-      </View>
+  /* ----------------------- Hisoblangan qiymatlar ----------------------- */
 
-      <Pressable onPress={onLogout} style={styles.logout}>
-        <Text style={styles.logoutText}>Chiqish</Text>
-      </Pressable>
+  const ids = useMemo(() => myCardIds(cards, txs), [cards, txs]);
+  const total = useMemo(() => cards.reduce((s, c) => s + (Number(c.balance) || 0), 0), [cards]);
+  const spending = useMemo(() => computeSpending(txs, ids), [txs, ids]);
+
+  const activity: ActivityItem[] = useMemo(
+    () =>
+      txs.slice(0, 4).map((tx) => {
+        const dir = directionOf(tx, ids);
+        const meta = txMeta(tx, dir);
+        return {
+          id: tx.id,
+          icon: meta.icon,
+          title: meta.title,
+          subtitle: `${meta.category} · ${whenLabel(parseDate(tx.created_at))}`,
+          amount: Number(tx.amount) || 0,
+          dir,
+          status: tx.status,
+        };
+      }),
+    [txs, ids]
+  );
+
+  const initials = me ? `${me.first_name?.[0] ?? ''}${me.last_name?.[0] ?? ''}`.toUpperCase() : '';
+
+  /* ----------------------------- Amallar ----------------------------- */
+
+  const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+  const onCreateCard = async () => {
+    setCreating(true);
+    try {
+      await createCard();
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Karta ochib bo\'lmadi');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const onLogout = () => {
+    Alert.alert('Chiqish', 'Akkauntdan chiqmoqchimisiz?', [
+      { text: 'Bekor qilish', style: 'cancel' },
+      {
+        text: 'Chiqish',
+        style: 'destructive',
+        onPress: async () => {
+          await clearTokens();
+          await clearPin();
+          router.replace('/login');
+        },
+      },
+    ]);
+  };
+
+  /* ------------------------------ Ko'rinish ------------------------------ */
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 20,
+          paddingBottom: insets.bottom + 120,
+          gap: 22,
+        }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.mint} colors={[C.mint]} />
+        }
+      >
+        <Header
+          initials={initials}
+          greeting={greeting()}
+          name={me?.first_name ?? ''}
+          onAvatar={onLogout}
+          onBell={tap}
+        />
+
+        {error ? (
+          <Pressable onPress={onRefresh} style={styles.error}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.errorRetry}>Qayta urinish</Text>
+          </Pressable>
+        ) : null}
+
+        {loading ? (
+          <>
+            <Skeleton height={210} radius={28} />
+            <Skeleton height={86} radius={22} />
+            <Skeleton height={170} radius={26} />
+            <Skeleton height={190} radius={22} />
+          </>
+        ) : (
+          <>
+            <Animated.View entering={FadeInDown.duration(500)}>
+              <BalanceCard
+                total={total}
+                cardNumber={cards[0]?.card_number}
+                cardCount={cards.length}
+                frozen={!!cards[0]?.is_frozen}
+                hidden={hidden}
+                onToggleHidden={() => setHidden((v) => !v)}
+                onCreateCard={onCreateCard}
+                creating={creating}
+                onDetails={tap}
+              />
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(100).duration(500)}>
+              <ActionsRow onPress={tap} />
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(200).duration(500)}>
+              <SpendingCard spending={spending} />
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(300).duration(500)}>
+              <MarketPanel market={market} />
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(400).duration(500)}>
+              <ActivityList items={activity} onViewAll={tap} />
+            </Animated.View>
+          </>
+        )}
+      </ScrollView>
+
+      <TabBar bottomInset={insets.bottom} onPress={tap} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 20 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  welcome: { alignItems: 'center' },
-  coin: { width: 96, height: 96, marginBottom: 20 },
-  small: { fontSize: 18, color: '#6B7280', fontWeight: '600' },
-  name: { marginTop: 4, fontSize: 38, fontWeight: '900', color: '#000', letterSpacing: -1 },
-  logout: {
-    height: 54,
+  container: { flex: 1, backgroundColor: C.bg },
+  error: {
+    padding: 14,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#000',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(255,123,123,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,123,123,0.3)',
+    gap: 4,
   },
-  logoutText: { fontSize: 16, fontWeight: '700', color: '#000' },
+  errorText: { color: C.red, fontSize: 14, fontWeight: '600' },
+  errorRetry: { color: C.sub, fontSize: 12 },
 });

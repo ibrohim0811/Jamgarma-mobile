@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { BackButton, PrimaryButton, formatUz } from '../../components/auth-ui';
 import { login, ApiError, NetworkError } from '../../lib/auth-api';
+import { hasPin } from '../../lib/pin';
 
 const HOME_ROUTE = '/home'; // kirgandan keyin ochiladigan ekran
 
@@ -34,7 +35,9 @@ export default function PasswordScreen() {
     try {
       await login(`+998${phone}`, password);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      router.replace(HOME_ROUTE as any);
+      // Bu qurilmada 4 xonali parol hali o'rnatilmagan bo'lsa, avval uni o'rnatamiz
+      const next = (await hasPin()) ? HOME_ROUTE : '/pin';
+      router.replace(next as any);
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         // Telefon yoki parol xato → telefon raqam oynasiga qaytaramiz

@@ -22,10 +22,13 @@ import {
   isBiometricEnabled,
   setBiometricEnabled,
   authenticateBiometric,
+  clearPin,
   BiometricKind,
 } from '../lib/pin';
+import { clearTokens } from '../lib/auth-api';
 
 const PIN_LENGTH = 4;
+const MAX_ATTEMPTS = 5; // qulfni ochishda ruxsat etilgan xato urinishlar
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bio', '0', 'del'];
 
 type Phase = 'create' | 'confirm' | 'unlock';
@@ -84,6 +87,7 @@ export default function PinScreen() {
   const [firstPin, setFirstPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   const [bio, setBio] = useState<{ kind: BiometricKind | null; enabled: boolean }>({
     kind: null,
     enabled: false,
@@ -179,8 +183,39 @@ export default function PinScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       goHome();
     } else {
-      fail("Parol noto'g'ri");
+      const n = attempts + 1;
+      setAttempts(n);
+
+      if (n >= MAX_ATTEMPTS) {
+        // Juda ko'p xato urinish: sessiyani tugatib, qayta kirishni talab qilamiz
+        await clearTokens();
+        await clearPin();
+        Alert.alert('Xavfsizlik', "Ko'p marta xato kiritildi. Iltimos, qaytadan kiring.");
+        router.replace('/login');
+        return;
+      }
+      fail(`Parol noto'g'ri. Qolgan urinish: ${MAX_ATTEMPTS - n}`);
     }
+  };
+
+  // "Parolni unutdingizmi?" → akkauntdan chiqib, qaytadan kirish
+  const onForgot = () => {
+    Alert.alert(
+      'Parolni unutdingizmi?',
+      "Akkauntdan chiqib, telefon raqam va parol bilan qaytadan kirasiz. Yangi 4 xonali parol o'rnatiladi.",
+      [
+        { text: 'Bekor qilish', style: 'cancel' },
+        {
+          text: 'Chiqish',
+          style: 'destructive',
+          onPress: async () => {
+            await clearTokens();
+            await clearPin();
+            router.replace('/login');
+          },
+        },
+      ]
+    );
   };
 
   const onKey = (k: string) => {
@@ -214,7 +249,7 @@ export default function PinScreen() {
   const showBio = isUnlock && !!bio.kind && bio.enabled;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 48, paddingBottom: insets.bottom + (isUnlock ? 56 : 24) }]}>
       <Animated.View entering={FadeInDown.duration(500)} style={styles.head}>
         <View style={styles.lock}>
           <Ionicons name="lock-closed" size={26} color="#fff" />
@@ -262,6 +297,12 @@ export default function PinScreen() {
           );
         })}
       </View>
+
+      {isUnlock ? (
+        <Pressable onPress={onForgot} hitSlop={10} style={[styles.forgot, { bottom: insets.bottom + 14 }]}>
+          <Text style={styles.forgotText}>Parolni unutdingizmi?</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -296,4 +337,6 @@ const styles = StyleSheet.create({
   keyFilled: { backgroundColor: '#F4F4F5' },
   keyPressed: { backgroundColor: '#E5E7EB' },
   keyText: { fontSize: 32, fontWeight: '500', color: '#000' },
+  forgot: { position: 'absolute', alignSelf: 'center' },
+  forgotText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
 });
