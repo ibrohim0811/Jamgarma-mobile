@@ -37,6 +37,7 @@ import {
 import { AppTabBar } from '../components/app-tabs';
 import { MarketPanel, useMarket } from '../components/market-ui';
 import { useWeather } from '../lib/weather';
+import RonAiAssistant from '../components/ron-ai-assistant';
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -246,6 +247,9 @@ export default function HomeScreen() {
       </ScrollView>
 
       <AppTabBar active="home" />
+
+      {/* Ron AI Yordamchi - ekranda suzib yuradi, bosib fullscreen chat ochiladi */}
+      <RonAiAssistant />
     </View>
   );
 }

@@ -320,20 +320,34 @@ const ACTIONS: { key: string; icon: IconName; label: string }[] = [
   { key: 'send', icon: 'arrow-up-right', label: 'Yuborish' },
   { key: 'topup', icon: 'plus', label: "To'ldirish" },
   { key: 'pay', icon: 'file-text', label: "To'lovlar" },
-  { key: 'more', icon: 'more-horizontal', label: 'Yana' },
 ];
 
 export function ActionsRow({ onPress }: { onPress: (key: string) => void }) {
   return (
     <View style={styles.actions}>
-      {ACTIONS.map((a, i) => (
-        <Pressable key={a.key} onPress={() => onPress(a.key)} style={styles.action}>
-          <View style={[styles.actionBtn, i === 0 && styles.actionPrimary]}>
-            <Feather name={a.icon} size={22} color={i === 0 ? '#000' : C.text} />
-          </View>
-          <Text style={styles.actionLabel}>{a.label}</Text>
-        </Pressable>
-      ))}
+      {/* Yuborish - gorizontal cho'zilgan asosiy tugma */}
+      <Pressable onPress={() => onPress('send')} style={styles.actionSend}>
+        <View style={styles.actionSendBtn}>
+          <Feather name="arrow-up-right" size={24} color="#000" />
+        </View>
+        <Text style={[styles.actionLabel, styles.actionSendLabel]}>Yuborish</Text>
+      </Pressable>
+
+      {/* To'ldirish */}
+      <Pressable onPress={() => onPress('topup')} style={styles.action}>
+        <View style={styles.actionBtn}>
+          <Feather name="plus" size={22} color={C.text} />
+        </View>
+        <Text style={styles.actionLabel}>To'ldirish</Text>
+      </Pressable>
+
+      {/* To'lovlar */}
+      <Pressable onPress={() => onPress('pay')} style={styles.action}>
+        <View style={styles.actionBtn}>
+          <Feather name="file-text" size={22} color={C.text} />
+        </View>
+        <Text style={styles.actionLabel}>To'lovlar</Text>
+      </Pressable>
     </View>
   );
 }
@@ -606,7 +620,7 @@ const styles = StyleSheet.create({
   createText: { color: '#000', fontSize: 13, fontWeight: '800' },
 
   /* tezkor amallar */
-  actions: { flexDirection: 'row', justifyContent: 'space-between' },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   action: { alignItems: 'center', gap: 8, width: 72 },
   actionBtn: {
     width: 64,
@@ -618,6 +632,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  actionSend: { alignItems: 'center', gap: 8, width: 116 },
+  actionSendBtn: {
+    width: 116,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: C.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: C.mint,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  actionSendLabel: { color: C.text, fontWeight: '700' },
   actionPrimary: { backgroundColor: C.mint, borderColor: C.mint },
   actionLabel: { color: C.text, fontSize: 13, fontWeight: '500' },
 

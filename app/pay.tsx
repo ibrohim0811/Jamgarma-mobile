@@ -5,7 +5,6 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -34,7 +33,7 @@ import { ScreenHeader, DarkField, MintButton, SuccessView, fmtAmount, cleanAmoun
 
 type IconName = React.ComponentProps<typeof Feather>['name'];
 
-const TILE = (Dimensions.get('window').width - 40 - 24) / 3;
+const COLUMNS = 3;
 const QUICK = [10000, 20000, 50000, 100000];
 
 type Done = { rows: { label: string; value: string }[] };
@@ -280,19 +279,32 @@ export default function PayScreen() {
 
   /* ------------------------------ Xizmatlar ro'yxati ------------------------------ */
 
+  const chunk = (list: PayService[], size: number) => {
+    const rows: PayService[][] = [];
+    for (let i = 0; i < list.length; i += size) rows.push(list.slice(i, i + size));
+    return rows;
+  };
+
   const renderGroup = (title: string, list: PayService[], delay: number) => (
     <Animated.View entering={FadeInDown.delay(delay).duration(450)}>
       <Text style={styles.groupTitle}>{title}</Text>
       <View style={styles.grid}>
-        {list.map((s) => (
-          <Pressable key={s.key} onPress={() => open(s)} style={[styles.tile, { width: TILE }]}>
-            <View style={styles.tileIcon}>
-              <Feather name={s.icon as IconName} size={22} color={C.mint} />
-            </View>
-            <Text style={styles.tileLabel} numberOfLines={2}>
-              {s.label}
-            </Text>
-          </Pressable>
+        {chunk(list, COLUMNS).map((row, i) => (
+          <View key={i} style={styles.gridRow}>
+            {row.map((s) => (
+              <Pressable key={s.key} onPress={() => open(s)} style={styles.tile}>
+                <View style={styles.tileIcon}>
+                  <Feather name={s.icon as IconName} size={22} color={C.mint} />
+                </View>
+                <Text style={styles.tileLabel} numberOfLines={2}>
+                  {s.label}
+                </Text>
+              </Pressable>
+            ))}
+            {Array.from({ length: COLUMNS - row.length }).map((_, k) => (
+              <View key={`empty-${k}`} style={styles.tileEmpty} />
+            ))}
+          </View>
         ))}
       </View>
     </Animated.View>
@@ -350,8 +362,11 @@ const styles = StyleSheet.create({
   cardInfoTitle: { color: C.text, fontSize: 15, fontWeight: '700' },
   cardInfoSub: { color: C.sub, fontSize: 12, marginTop: 3 },
   groupTitle: { color: C.text, fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  grid: { gap: 12 },
+  gridRow: { flexDirection: 'row', gap: 12 },
+  tileEmpty: { flex: 1 },
   tile: {
+    flex: 1,
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 8,

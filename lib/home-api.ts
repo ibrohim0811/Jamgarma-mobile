@@ -54,6 +54,13 @@ export const getCards = (): Promise<Card[]> => call('/cards/');
 export const getTransactions = (): Promise<Tx[]> => call('/transactions/');
 export const createCard = (): Promise<Card> => call('/cards/', { method: 'POST' });
 
+/** PATCH /cards/freeze va /cards/unfreeze: yangilangan kartani qaytaradi */
+export const setCardFrozen = (card_number: number, frozen: boolean): Promise<Card> =>
+  call(frozen ? '/cards/freeze' : '/cards/unfreeze', {
+    method: 'PATCH',
+    body: JSON.stringify({ card_number }),
+  });
+
 /* ------------------------------------------------------------------ */
 /*  Pul va sana formatlari                                              */
 /* ------------------------------------------------------------------ */

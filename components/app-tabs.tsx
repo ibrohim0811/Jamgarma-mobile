@@ -22,8 +22,6 @@ export function AppTabBar({ active }: { active: TabKey }) {
       router.dismissTo('/home');
       return;
     }
-    if (key === 'profile') return; // hozircha ekrani yo'q
-
     const path = `/${key}` as any;
     if (active === 'home') router.push(path);
     else router.replace(path);
