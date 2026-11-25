@@ -11,14 +11,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/jamgarma.jpeg",
+        "backgroundImage": "./assets/jamgarma.jpeg",
+        "monochromeImage": "./assets/jamgarma.jpeg"
+      },
+      "package": "com.official.idev.uz.JamgarmaMobile"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/jamgarma.jpeg"
     },
     "plugins": [
       "expo-router",
