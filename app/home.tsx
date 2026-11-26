@@ -141,6 +141,7 @@ export default function HomeScreen() {
     tap();
     if (key === 'topup') router.push('/topup');
     else if (key === 'pay') router.push('/pay');
+    else if (key === 'send') router.push('/send');
   };
 
   const onCreateCard = async () => {

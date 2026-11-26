@@ -1,4 +1,5 @@
 import { call, Card, Tx, myCardIds } from './home-api';
+import { API_URL, ApiError } from './auth-api';
 
 /* ------------------------------------------------------------------ */
 /*  Karta ID si (UUID)                                                  */
@@ -94,3 +95,54 @@ export const TELECOM: PayService[] = [
   { kind: 'telecom', key: 'mobiuz', label: 'Mobiuz', icon: 'smartphone' },
   { kind: 'telecom', key: 'uztelecom_internet', label: 'Uztelecom internet', icon: 'wifi' },
 ];
+
+/* ------------------------------------------------------------------ */
+/*  P2P O'tkazma                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * GET /cards/search/{card_number}  — Auth talab qilinmaydi.
+ * Karta egasining ismini qaytaradi yoki xato chiqaradi.
+ */
+export type CardSearchResult = {
+  card_number: number;
+  is_frozen: boolean;
+  user_fullname: string;
+};
+
+export async function searchCard(card_number: string): Promise<CardSearchResult> {
+  // Bu endpoint auth talab qilmaydi — oddiy fetch ishlatamiz
+  const res = await fetch(`${API_URL}/cards/search/${card_number}`, {
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.detail === 'string' ? data.detail : 'Karta topilmadi';
+    throw new ApiError(res.status, msg);
+  }
+  return data as CardSearchResult;
+}
+
+export type P2PResult = {
+  message: string;
+  transaction_id: string;
+  amount: number;
+};
+
+/**
+ * POST /p2p/transfer
+ * sender_card_id — UUID (karta id si)
+ * receiver_card_number — 16 xonali raqam (integer)
+ * amount — musbat son
+ * description — ixtiyoriy
+ */
+export const p2pTransfer = (body: {
+  sender_card_id: string;
+  receiver_card_number: number;
+  amount: number;
+  description?: string;
+}): Promise<P2PResult> =>
+  call('/p2p/transfer', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
