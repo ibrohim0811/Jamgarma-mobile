@@ -14,8 +14,8 @@ export const NO_CARD_ID_MESSAGE =
  * 2) Aks holda bitta karta bo'lsa, tranzaksiyalardan topadi (faqat avval kommunal/aloqa
  *    to'lovi yoki to'ldirish bo'lgan bo'lsa ishlaydi).
  */
-export function resolveCardId(cards: Card[], txs: Tx[]): string | null {
-  const card = cards[0];
+export function resolveCardId(cards: Card[], txs: Tx[], targetCard?: Card | null): string | null {
+  const card = targetCard ?? cards[0];
   if (!card) return null;
   if (card.id) return card.id;
 

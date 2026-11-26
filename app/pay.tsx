@@ -13,7 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { ApiError } from '../lib/auth-api';
 import { Card, Tx, getCards, getTransactions, money } from '../lib/home-api';
@@ -30,6 +30,7 @@ import { C, Skeleton } from '../components/home-ui';
 import { AppTabBar } from '../components/app-tabs';
 import { formatUz, cleanPhoneDigits } from '../components/auth-ui';
 import { ScreenHeader, DarkField, MintButton, SuccessView, fmtAmount, cleanAmount } from '../components/dark-ui';
+import { CardSelector } from '../components/card-selector';
 
 type IconName = React.ComponentProps<typeof Feather>['name'];
 
@@ -40,8 +41,10 @@ type Done = { rows: { label: string; value: string }[] };
 
 export default function PayScreen() {
   const insets = useSafeAreaInsets();
+  const { card_number: initialCardNumber } = useLocalSearchParams<{ card_number?: string }>();
 
   const [cards, setCards] = useState<Card[]>([]);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,6 +63,10 @@ export default function PayScreen() {
         const [c, t] = await Promise.all([getCards(), getTransactions()]);
         setCards(c);
         setTxs(t);
+        if (c.length > 0) {
+          const match = initialCardNumber ? c.find((item) => String(item.card_number) === initialCardNumber) : null;
+          setSelectedCard(match ?? c[0]);
+        }
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           router.replace('/login');
@@ -72,8 +79,8 @@ export default function PayScreen() {
     })();
   }, []);
 
-  const card = cards[0];
-  const cardId = useMemo(() => resolveCardId(cards, txs), [cards, txs]);
+  const card = selectedCard ?? cards[0];
+  const cardId = useMemo(() => resolveCardId(cards, txs, card), [cards, txs, card]);
   const balance = Number(card?.balance ?? 0) || 0;
   const amount = Number(digits) || 0;
 
@@ -186,15 +193,11 @@ export default function PayScreen() {
           <ScreenHeader title={service.label} onBack={() => setService(null)} />
 
           <Animated.View entering={FadeInDown.duration(400)} style={{ paddingHorizontal: 20, marginTop: 20, gap: 16 }}>
-            <View style={styles.cardInfo}>
-              <Feather name="credit-card" size={18} color={C.mint} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardInfoTitle}>
-                  {card ? `•••• ${String(card.card_number).slice(-4)}` : 'Karta yo\'q'}
-                </Text>
-                <Text style={styles.cardInfoSub}>Balans: {money(balance)} so'm</Text>
-              </View>
-            </View>
+            <CardSelector
+              cards={cards}
+              selectedCard={card}
+              onSelect={(selected) => setSelectedCard(selected)}
+            />
 
             {telecom ? (
               <DarkField
@@ -324,16 +327,12 @@ export default function PayScreen() {
           {loading ? (
             <Skeleton height={64} radius={20} />
           ) : (
-            <Animated.View entering={FadeInDown.duration(400)} style={styles.cardInfo}>
-              <Feather name="credit-card" size={18} color={C.mint} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardInfoTitle}>
-                  {card ? `To'lov kartasi •••• ${String(card.card_number).slice(-4)}` : 'Karta ochilmagan'}
-                </Text>
-                <Text style={styles.cardInfoSub}>
-                  {card ? `Balans: ${money(balance)} so'm` : 'Bosh ekranda "Karta ochish" tugmasini bosing'}
-                </Text>
-              </View>
+            <Animated.View entering={FadeInDown.duration(400)}>
+              <CardSelector
+                cards={cards}
+                selectedCard={card}
+                onSelect={(selected) => setSelectedCard(selected)}
+              />
             </Animated.View>
           )}
 

@@ -48,6 +48,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCardIndex, setSelectedCardIndex] = useState(0);
   const [hidden, setHidden] = useState(false);
   const [creating, setCreating] = useState(false);
   const [marketKey, setMarketKey] = useState(0);
@@ -102,7 +103,8 @@ export default function HomeScreen() {
   /* ----------------------- Hisoblangan qiymatlar ----------------------- */
 
   const ids = useMemo(() => myCardIds(cards, txs), [cards, txs]);
-  const total = useMemo(() => cards.reduce((s, c) => s + (Number(c.balance) || 0), 0), [cards]);
+  const activeCard = cards[selectedCardIndex] ?? cards[0];
+  const activeBalance = Number(activeCard?.balance ?? 0) || 0;
   const spending = useMemo(() => computeSpending(txs, ids), [txs, ids]);
 
   const activity: ActivityItem[] = useMemo(
@@ -131,17 +133,24 @@ export default function HomeScreen() {
 
   // Karta tafsilotlari ekrani
   const openCard = () => {
-    if (!cards[0]) return;
+    if (!activeCard) return;
     tap();
-    router.push({ pathname: '/card', params: { number: String(cards[0].card_number) } });
+    router.push({ pathname: '/card', params: { number: String(activeCard.card_number) } });
   };
 
   // Tezkor amallar: To'ldirish va To'lovlar ishlaydi, qolganlari keyin
   const onAction = (key: string) => {
     tap();
-    if (key === 'topup') router.push('/topup');
-    else if (key === 'pay') router.push('/pay');
-    else if (key === 'send') router.push('/send');
+    const params = activeCard ? { card_number: String(activeCard.card_number) } : undefined;
+    if (key === 'topup') router.push({ pathname: '/topup', params });
+    else if (key === 'pay') router.push({ pathname: '/pay', params });
+    else if (key === 'send') router.push({ pathname: '/send', params });
+  };
+
+  const onSwitchCard = () => {
+    if (cards.length <= 1) return;
+    Haptics.selectionAsync().catch(() => {});
+    setSelectedCardIndex((prev) => (prev + 1) % cards.length);
   };
 
   const onCreateCard = async () => {
@@ -214,16 +223,17 @@ export default function HomeScreen() {
           <>
             <Animated.View entering={FadeInDown.duration(500)}>
               <BalanceCard
-                total={total}
-                cardNumber={cards[0]?.card_number}
+                total={activeBalance}
+                cardNumber={activeCard?.card_number}
                 cardCount={cards.length}
-                frozen={!!cards[0]?.is_frozen}
+                frozen={!!activeCard?.is_frozen}
                 hidden={hidden}
                 onToggleHidden={() => setHidden((v) => !v)}
                 onCreateCard={onCreateCard}
                 creating={creating}
                 onDetails={openCard}
                 onPress={openCard}
+                onSwitchCard={onSwitchCard}
                 weather={weather}
               />
             </Animated.View>

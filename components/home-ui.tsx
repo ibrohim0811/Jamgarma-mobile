@@ -225,6 +225,7 @@ export function BalanceCard({
   onDetails,
   weather,
   onPress,
+  onSwitchCard,
 }: {
   total: number;
   cardNumber?: number;
@@ -237,6 +238,7 @@ export function BalanceCard({
   onDetails: () => void;
   weather?: WeatherInfo | null;
   onPress?: () => void;
+  onSwitchCard?: () => void;
 }) {
   const { int, dec } = splitMoney(total);
   const last4 = cardNumber ? String(cardNumber).slice(-4) : null;
@@ -286,7 +288,21 @@ export function BalanceCard({
         {cardNumber ? (
           <View style={styles.dotsRow}>
             <Text style={styles.last4}>•••• {last4}</Text>
-            {cardCount > 1 ? <Text style={styles.more}>+{cardCount - 1} karta</Text> : null}
+            {cardCount > 1 && onSwitchCard ? (
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onSwitchCard();
+                }}
+                hitSlop={8}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#18241D', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}
+              >
+                <Text style={[styles.more, { color: C.mint, fontWeight: '700' }]}>+{cardCount - 1} almashtirish</Text>
+                <Feather name="refresh-cw" size={10} color={C.mint} />
+              </Pressable>
+            ) : cardCount > 1 ? (
+              <Text style={styles.more}>+{cardCount - 1} karta</Text>
+            ) : null}
             {frozen ? (
               <View style={styles.frozen}>
                 <Feather name="slash" size={11} color={C.amber} />

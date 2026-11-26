@@ -32,7 +32,7 @@ import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { ApiError } from '../lib/auth-api';
 import { Card, Tx, getCards, getTransactions, money, splitMoney } from '../lib/home-api';
@@ -46,6 +46,7 @@ import {
 } from '../lib/pay-api';
 import { C, Skeleton } from '../components/home-ui';
 import { ScreenHeader, MintButton, SuccessView, fmtAmount, cleanAmount } from '../components/dark-ui';
+import { CardSelector } from '../components/card-selector';
 
 const QUICK = [10000, 50000, 100000, 200000];
 const CARD_NUMBER_LENGTH = 16;
@@ -130,9 +131,11 @@ function ReceiverCard({ result, loading }: { result: CardSearchResult | null; lo
 /* ------------------------------------------------------------------ */
 export default function SendScreen() {
   const insets = useSafeAreaInsets();
+  const { card_number: initialCardNumber } = useLocalSearchParams<{ card_number?: string }>();
 
   // ---- Ma'lumotlar ----
   const [cards, setCards] = useState<Card[]>([]);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -152,8 +155,8 @@ export default function SendScreen() {
   const cardNumRef = useRef<any>(null);
 
   // Karta UUID si
-  const senderCardId = useMemo(() => resolveCardId(cards, txs), [cards, txs]);
-  const myCard = cards[0];
+  const myCard = selectedCard ?? cards[0];
+  const senderCardId = useMemo(() => resolveCardId(cards, txs, myCard), [cards, txs, myCard]);
   const myBalance = Number(myCard?.balance ?? 0) || 0;
   const { int: balInt, dec: balDec } = splitMoney(myBalance);
 
@@ -176,6 +179,10 @@ export default function SendScreen() {
         const [c, t] = await Promise.all([getCards(), getTransactions()]);
         setCards(c);
         setTxs(t);
+        if (c.length > 0) {
+          const match = initialCardNumber ? c.find((item) => String(item.card_number) === initialCardNumber) : null;
+          setSelectedCard(match ?? c[0]);
+        }
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           router.replace('/login');
@@ -319,14 +326,17 @@ export default function SendScreen() {
         ) : (
           <View style={{ paddingHorizontal: 20, marginTop: 20, gap: 20 }}>
 
-            {/* ── Joriy balans ── */}
-            <View style={s.balanceBox}>
-              <Text style={s.balanceLabel}>Sizning balansingiz</Text>
-              <Text style={s.balanceValue}>
-                {balInt}
-                <Text style={s.balanceDec}>.{balDec} so'm</Text>
-              </Text>
-            </View>
+            {/* ── Karta tanlash (agar 1 dan ortiq bo'lsa) ── */}
+            <CardSelector
+              cards={cards}
+              selectedCard={myCard}
+              onSelect={(chosen) => {
+                setSelectedCard(chosen);
+                setDigits('');
+                setTxError(null);
+              }}
+              label="Yuboruvchi karta"
+            />
 
             {/* ── Karta raqami qidirish ── */}
             <View style={{ gap: 10 }}>

@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { ApiError } from '../lib/auth-api';
 import { Card, Tx, getCards, getTransactions, splitMoney, money } from '../lib/home-api';
@@ -13,14 +13,17 @@ import { resolveCardId, topUp, TopUpResult, NO_CARD_ID_MESSAGE } from '../lib/pa
 import { C, Skeleton } from '../components/home-ui';
 import { CardFace, DESIGNS } from '../components/card-designs';
 import { ScreenHeader, DarkField, MintButton, SuccessView, fmtAmount, cleanAmount } from '../components/dark-ui';
+import { CardSelector } from '../components/card-selector';
 
 const QUICK = [50000, 100000, 200000, 500000];
 const CARD_W = Math.min(Dimensions.get('window').width - 80, 300);
 
 export default function TopUpScreen() {
   const insets = useSafeAreaInsets();
+  const { card_number: initialCardNumber } = useLocalSearchParams<{ card_number?: string }>();
 
   const [cards, setCards] = useState<Card[]>([]);
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [design, setDesign] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -31,9 +34,18 @@ export default function TopUpScreen() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TopUpResult | null>(null);
 
-  const card = cards[0];
-  const cardId = useMemo(() => resolveCardId(cards, txs), [cards, txs]);
+  const card = selectedCard ?? cards[0];
+  const cardId = useMemo(() => resolveCardId(cards, txs, card), [cards, txs, card]);
   const amount = Number(digits) || 0;
+
+  const updateCardDesign = async (c: Card) => {
+    try {
+      const saved = await SecureStore.getItemAsync(`card_design_${c.card_number}`);
+      setDesign(Math.min(Math.max(parseInt(saved ?? '0', 10) || 0, 0), DESIGNS.length - 1));
+    } catch {
+      setDesign(0);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -42,9 +54,11 @@ export default function TopUpScreen() {
         setCards(c);
         setTxs(t);
 
-        if (c[0]) {
-          const saved = await SecureStore.getItemAsync(`card_design_${c[0].card_number}`);
-          setDesign(Math.min(Math.max(parseInt(saved ?? '0', 10) || 0, 0), DESIGNS.length - 1));
+        if (c.length > 0) {
+          const match = initialCardNumber ? c.find((item) => String(item.card_number) === initialCardNumber) : null;
+          const chosen = match ?? c[0];
+          setSelectedCard(chosen);
+          await updateCardDesign(chosen);
         }
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
@@ -115,6 +129,18 @@ export default function TopUpScreen() {
           </View>
         ) : (
           <View style={{ paddingHorizontal: 20, marginTop: 20, gap: 20 }}>
+            {cards.length > 1 && (
+              <CardSelector
+                cards={cards}
+                selectedCard={card}
+                onSelect={(chosen) => {
+                  setSelectedCard(chosen);
+                  updateCardDesign(chosen);
+                }}
+                label="To'ldiriladigan karta"
+              />
+            )}
+
             <Animated.View entering={FadeInDown.duration(450)} style={{ alignItems: 'center', gap: 14 }}>
               <CardFace design={DESIGNS[design]} width={CARD_W} number={card.card_number} holder={card.user_fullname} />
               <Text style={styles.balanceLine}>
