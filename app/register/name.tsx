@@ -8,7 +8,7 @@ export default function RegisterName() {
   const draft = getDraft();
   const [first, setFirst] = useState(draft.first_name);
   const [last, setLast] = useState(draft.last_name);
-  const lastRef = useRef<TextInput>(null);
+  const lastRef = useRef<any>(null);
 
   const valid = first.trim().length >= 2 && last.trim().length >= 2;
 

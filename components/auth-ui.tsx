@@ -143,7 +143,7 @@ type FieldProps = TextInputProps & {
   right?: React.ReactNode;
 };
 
-export const Field = React.forwardRef<TextInput, FieldProps>(
+export const Field = React.forwardRef<any, FieldProps>(
   ({ prefix, error, right, style, ...rest }, ref) => (
     <View style={[styles.field, error && styles.fieldError]}>
       {prefix ? (

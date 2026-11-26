@@ -19,7 +19,7 @@ const mmss = (s: number) =>
 
 export default function RegisterOtp() {
   const phone = getDraft().phone;
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<any>(null);
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);

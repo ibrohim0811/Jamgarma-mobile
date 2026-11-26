@@ -15,7 +15,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 /** GitHub kabi faollik grafigi: har bir katak = bir kun, rang = o'sha kungi kirim miqdori */
 export function ContributionGraph({ data }: { data: ContributionData }) {
   const [sel, setSel] = useState<Cell | null>(null);
-  const scroller = useRef<ScrollView>(null);
+  const scroller = useRef<any>(null);
 
   // Oy nomlari: oy almashgan haftada (yonma-yon ikkita yozuv bir-birini bosmasligi uchun siyraklashtiriladi)
   const months = useMemo(() => {

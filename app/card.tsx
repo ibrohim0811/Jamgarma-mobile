@@ -10,6 +10,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import Animated, {
+  SharedValue,
   useSharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -85,7 +86,7 @@ function DesignItem({
   holder,
 }: {
   index: number;
-  scrollX: Animated.SharedValue<number>;
+  scrollX: SharedValue<number>;
   number: number;
   holder: string;
 }) {

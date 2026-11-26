@@ -52,7 +52,7 @@ type DarkFieldProps = TextInputProps & {
   right?: React.ReactNode;
 };
 
-export const DarkField = React.forwardRef<TextInput, DarkFieldProps>(
+export const DarkField = React.forwardRef<any, DarkFieldProps>(
   ({ label, prefix, suffix, error, right, style, ...rest }, ref) => (
     <View>
       {label ? <Text style={s.fieldLabel}>{label}</Text> : null}
