@@ -169,8 +169,7 @@ export default function SendScreen() {
     !!searchResult &&
     !searchResult.is_frozen &&
     amount > 0 &&
-    amount <= myBalance &&
-    !!senderCardId;
+    amount <= myBalance;
 
   // ---- Sahifani yuklash ----
   useEffect(() => {
@@ -247,6 +246,10 @@ export default function SendScreen() {
   // ---- P2P yuborish ----
   const handleSend = async () => {
     if (!canSend || submitting) return;
+    if (myCard?.is_frozen) {
+      setTxError('Sizning kartangiz muzlatilgan');
+      return;
+    }
     if (!senderCardId) {
       setTxError(NO_CARD_ID_MESSAGE);
       return;

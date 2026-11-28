@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -9,6 +9,8 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { splitMoney, money, MONTHS, Spending, Direction } from '../lib/home-api';
 import { WeatherInfo, weatherTint, weatherIcon } from '../lib/weather';
 import { WeatherBackground } from './weather-bg';
@@ -243,6 +245,16 @@ export function BalanceCard({
   const { int, dec } = splitMoney(total);
   const last4 = cardNumber ? String(cardNumber).slice(-4) : null;
   const tint = weather ? weatherTint(weather.kind) : '#0E1210';
+  const [copied, setCopied] = useState(false);
+
+  const copyCardNumber = async (e: any) => {
+    e.stopPropagation();
+    if (!cardNumber) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    await Clipboard.setStringAsync(String(cardNumber));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <Pressable onPress={onPress} style={[styles.card, { backgroundColor: tint }]}>
@@ -288,6 +300,28 @@ export function BalanceCard({
         {cardNumber ? (
           <View style={styles.dotsRow}>
             <Text style={styles.last4}>•••• {last4}</Text>
+
+            <Pressable
+              onPress={copyCardNumber}
+              hitSlop={8}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: copied ? '#1A3324' : '#141816',
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: copied ? C.mint : '#252B28',
+              }}
+            >
+              <Feather name={copied ? 'check' : 'copy'} size={11} color={copied ? C.mint : '#A2ABA6'} />
+              <Text style={{ color: copied ? C.mint : '#A2ABA6', fontSize: 11, fontWeight: '700' }}>
+                {copied ? 'Nusxalandi' : 'Nusxalash'}
+              </Text>
+            </Pressable>
+
             {cardCount > 1 && onSwitchCard ? (
               <Pressable
                 onPress={(e) => {
@@ -319,8 +353,8 @@ export function BalanceCard({
 
         {cardNumber ? (
           <Pressable onPress={onDetails} style={styles.details} hitSlop={8}>
-            <Text style={styles.detailsText}>Karta tafsilotlari</Text>
-            <Feather name="arrow-up-right" size={14} color={C.text} />
+            <Text style={styles.detailsText} numberOfLines={1}>Tafsilotlar</Text>
+            <Feather name="arrow-up-right" size={12} color={C.sub} />
           </Pressable>
         ) : null}
       </View>
@@ -608,10 +642,10 @@ const styles = StyleSheet.create({
   balance: { color: C.text, fontSize: 44, fontWeight: '700', letterSpacing: -1.5 },
   balanceDec: { color: C.sub, fontSize: 28, fontWeight: '600' },
   balanceHidden: { color: C.text, fontSize: 44, fontWeight: '700', letterSpacing: 4 },
-  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  last4: { color: C.sub, fontSize: 13, letterSpacing: 1 },
-  more: { color: C.sub, fontSize: 12 },
+  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, flexWrap: 'wrap' },
+  last4: { color: C.sub, fontSize: 12, letterSpacing: 0.5 },
+  more: { color: C.sub, fontSize: 11 },
   frozen: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -622,8 +656,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245,185,95,0.12)',
   },
   frozenText: { color: C.amber, fontSize: 11, fontWeight: '700' },
-  details: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailsText: { color: C.text, fontSize: 13, fontWeight: '600' },
+  details: { flexDirection: 'row', alignItems: 'center', gap: 2, flexShrink: 0 },
+  detailsText: { color: C.sub, fontSize: 11, fontWeight: '600' },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',

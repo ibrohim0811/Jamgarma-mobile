@@ -23,6 +23,7 @@ import { Feather } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -119,6 +120,15 @@ export default function CardDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const [index, setIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const copyCardNumber = async () => {
+    if (!card) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    await Clipboard.setStringAsync(String(card.card_number));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const { rates, failed } = useRates();
 
@@ -321,7 +331,34 @@ export default function CardDetailScreen() {
 
               {/* Ma'lumotlar */}
               <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.panel}>
-                <Info label="Karta raqami" value={String(card.card_number).replace(/(\d{4})(?=\d)/g, '$1 ')} mono />
+                <View style={[styles.info, styles.infoBorder]}>
+                  <Text style={styles.infoLabel}>Karta raqami</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={[styles.infoValue, { letterSpacing: 1 }]} numberOfLines={1}>
+                      {String(card.card_number).replace(/(\d{4})(?=\d)/g, '$1 ')}
+                    </Text>
+                    <Pressable
+                      onPress={copyCardNumber}
+                      hitSlop={8}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        backgroundColor: copied ? '#1A3324' : '#141816',
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: copied ? C.mint : '#252B28',
+                      }}
+                    >
+                      <Feather name={copied ? 'check' : 'copy'} size={12} color={copied ? C.mint : '#A2ABA6'} />
+                      <Text style={{ color: copied ? C.mint : '#A2ABA6', fontSize: 11, fontWeight: '700' }}>
+                        {copied ? 'Nusxalandi' : 'Nusxalash'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
                 <Info label="Karta egasi" value={card.user_fullname} />
                 <Info
                   label="Ochilgan sana"
